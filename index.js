@@ -11,22 +11,20 @@ async function createPass() {
       throw new Error("Mancano le configurazioni nei segreti di GitHub.");
     }
 
-    // Trasforma la stringa di testo di GitHub nel buffer binario del file .p12
     const signerCert = Buffer.from(base64Cert, "base64");
 
-    // Nuovo formato corretto: Inizializzazione della classe con l'oggetto di configurazione
+    // AGGIORNAMENTO: Aggiungiamo la proprietà 'type' per indicare lo stile del pass
     const pass = new PKPass({
-      model: path.resolve(__dirname, "./MioPass.raw"), // La cartella con immagini e pass.json
+      model: path.resolve(__dirname, "./MioPass.raw"),
+      type: "generic", // Può essere: generic, coupon, eventTicket, storeCard, boardingPass
       certificates: {
         signerCert: signerCert,
         signerKeyPassphrase: passphrase
       }
     });
 
-    // Compila i file e genera il pacchetto finale
     const actualPass = pass.getAsBuffer();
     
-    // Salva il file definitivo nella root
     const outputPath = path.resolve(__dirname, "./MioPass.pkpass");
     fs.writeFileSync(outputPath, actualPass);
     
@@ -34,7 +32,7 @@ async function createPass() {
   } catch (error) {
     console.error("!!! ERRORE CRITICO NELLO SCRIPT !!!");
     console.error(error);
-    process.exit(1); // Forza il fallimento su GitHub se qualcosa va storto
+    process.exit(1);
   }
 }
 
