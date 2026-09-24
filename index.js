@@ -51,7 +51,7 @@ async function createPass()
                 messageEncoding: "iso-8859-1"
             }]
         });
-const actualPass = pass.getAsBuffer();
+const actualPass = await pass.getAsBuffer();
 // Sostituisci la vecchia configurazione di outputPath con questa:
 const outputPath = path.join(process.cwd(), "MioPass.pkpass");
 fs.writeFileSync(outputPath, actualPass);
@@ -65,3 +65,4 @@ console.log("-> FILE GENERATO CON SUCCESSO IN: " + outputPath);
     process.exit(1);
 }
 }
+createPass();
