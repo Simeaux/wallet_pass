@@ -17,7 +17,8 @@ async function createPass() {
   pass.setSigner(signerCert, passphrase);
 
   const actualPass = pass.getAsBuffer();
-  fs.writeFileSync("./MioPass.pkpass", actualPass);
+  fs.writeFileSync(path.resolve(__dirname, "./MioPass.pkpass"), actualPass);
+
   console.log("Pass compilato e firmato con successo!");
 }
 
