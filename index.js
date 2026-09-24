@@ -6,29 +6,28 @@ async function createPass() {
   try {
     const base64Cert = process.env.APPLE_PASS_CERT; 
     const passphrase = process.env.APPLE_PASS_PASSWORD;
+    const base64Wwdr = process.env.APPLE_WWDR_CERT; // Carica il segreto WWDR di Apple
 
-    if (!base64Cert || !passphrase) {
-      throw new Error("Mancano le configurazioni nei segreti di GitHub.");
+    if (!base64Cert || !passphrase || !base64Wwdr) {
+      throw new Error("Mancano le configurazioni nei segreti di GitHub (CERT, PASSWORD o WWDR).");
     }
 
     const signerCert = Buffer.from(base64Cert, "base64");
+    const wwdrCert = Buffer.from(base64Wwdr, "base64"); // Decodifica il WWDR Apple
 
-    // Leggiamo i file delle immagini obbligatorie
+    // Carichiamo le immagini obbligatorie
     const modelPath = path.resolve(__dirname, "./MioPass.raw");
     const iconBuffer = fs.readFileSync(path.join(modelPath, "icon.png"));
     const logoBuffer = fs.readFileSync(path.join(modelPath, "logo.png"));
 
-    // AGGIORNAMENTO: Leggiamo il file wwdr.pem scaricato dal workflow di GitHub
-    const wwdrBuffer = fs.readFileSync(path.join(modelPath, "wwdr.pem"));
-
-    // Creazione del pass con l'iniezione di tutti i certificati richiesti
+    // Creazione del pass nativa slegata da letture di file fisici temporanei
     const pass = new PKPass({
       model: {
         "icon.png": iconBuffer,
         "logo.png": logoBuffer
       },
       certificates: {
-        wwdr: wwdrBuffer, // <-- Passiamo il certificato intermedio richiesto dalla validazione
+        wwdr: wwdrCert,
         signerCert: signerCert,
         signerKeyPassphrase: passphrase
       }
@@ -59,7 +58,6 @@ async function createPass() {
       ]
     });
 
-    // Compila il pass finale
     const actualPass = pass.getAsBuffer();
     
     const outputPath = path.resolve(__dirname, "./MioPass.pkpass");
