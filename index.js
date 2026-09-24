@@ -13,13 +13,17 @@ async function createPass() {
 
     const signerCert = Buffer.from(base64Cert, "base64");
 
-    // AGGIORNAMENTO: Aggiungiamo la proprietà 'type' per indicare lo stile del pass
+    // Configurazione aggiornata secondo le ultime specifiche della libreria
     const pass = new PKPass({
       model: path.resolve(__dirname, "./MioPass.raw"),
-      type: "generic", // Può essere: generic, coupon, eventTicket, storeCard, boardingPass
+      type: "generic", // Forzatura esplicita dello stile del pass
       certificates: {
         signerCert: signerCert,
         signerKeyPassphrase: passphrase
+      },
+      overrides: {
+        // Reinseriamo l'informazione anche nelle opzioni di override per sicurezza
+        type: "generic"
       }
     });
 
