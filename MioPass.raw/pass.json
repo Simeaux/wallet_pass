@@ -1,0 +1,26 @@
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.com.task.mio-pass",
+  "serialNumber": "123456",
+  "teamIdentifier": "ABC123XYZ7",
+  "organizationName": "Mia Azienda",
+  "description": "Tessera Socio",
+  "foregroundColor": "rgb(255, 255, 255)",
+  "backgroundColor": "rgb(60, 60, 60)",
+  "generic": {
+    "primaryFields": [
+      {
+        "key": "member",
+        "label": "Membro",
+        "value": "Mario Rossi"
+      }
+    ]
+  },
+  "barcodes": [
+    {
+      "format": "PKBarcodeFormatQR",
+      "message": "https://tuosito.com",
+      "messageEncoding": "iso-8859-1"
+    }
+  ]
+}
