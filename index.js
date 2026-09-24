@@ -13,24 +13,26 @@ async function createPass() {
 
     const signerCert = Buffer.from(base64Cert, "base64");
 
-    // Leggiamo esplicitamente i file delle immagini obbligatorie dalla cartella
+    // Leggiamo i file delle immagini obbligatorie
     const modelPath = path.resolve(__dirname, "./MioPass.raw");
     const iconBuffer = fs.readFileSync(path.join(modelPath, "icon.png"));
     const logoBuffer = fs.readFileSync(path.join(modelPath, "logo.png"));
 
-    // Creazione del pass con iniezione programmatica dei dati e del tipo
+    // AGGIORNAMENTO: Leggiamo il file wwdr.pem scaricato dal workflow di GitHub
+    const wwdrBuffer = fs.readFileSync(path.join(modelPath, "wwdr.pem"));
+
+    // Creazione del pass con l'iniezione di tutti i certificati richiesti
     const pass = new PKPass({
-      // Passiamo i file multimediali come buffer associati
       model: {
         "icon.png": iconBuffer,
         "logo.png": logoBuffer
       },
       certificates: {
+        wwdr: wwdrBuffer, // <-- Passiamo il certificato intermedio richiesto dalla validazione
         signerCert: signerCert,
         signerKeyPassphrase: passphrase
       }
     }, {
-      // Iniezione diretta dell'oggetto pass.json per evitare problemi di lettura
       formatVersion: 1,
       passTypeIdentifier: "pass.com.task.mio-pass",
       serialNumber: "123456",
