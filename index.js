@@ -52,8 +52,12 @@ async function createPass()
             }]
         });
 const actualPass = pass.getAsBuffer();
-const outputPath = path.resolve(__dirname, "./MioPass.pkpass");
+// Sostituisci la vecchia configurazione di outputPath con questa:
+const outputPath = path.join(process.cwd(), "MioPass.pkpass");
 fs.writeFileSync(outputPath, actualPass);
+
+console.log("-> FILE GENERATO CON SUCCESSO IN: " + outputPath);
+
 console.log("-> FILE GENERATO CON SUCCESSO IN: " + outputPath);
 } catch (error) {
     console.error("!!! ERRORE CRITICO NELLO SCRIPT !!!");
