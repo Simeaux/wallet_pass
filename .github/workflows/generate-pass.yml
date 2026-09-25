@@ -35,20 +35,10 @@ jobs:
           unzip -q MioPass.pkpass -d pass_check
 
           echo "=== CERTIFICATI PRESENTI NELLA FIRMA ==="
-          openssl pkcs7 `
-            -inform DER `
-            -in pass_check/signature `
-            -print_certs `
-            -noout
+          openssl pkcs7 -inform DER -in pass_check/signature -print_certs -noout
 
           echo "=== VERIFICA CRITTOGRAFICA DELLA FIRMA ==="
-          openssl smime `
-            -verify `
-            -inform DER `
-            -in pass_check/signature `
-            -content pass_check/manifest.json `
-            -noverify `
-            -out /dev/null
+          openssl smime -verify -inform DER -in pass_check/signature -content pass_check/manifest.json -noverify -out /dev/null
 
           echo "=== FIRMA PKCS#7 VERIFICATA ==="
 
@@ -57,4 +47,5 @@ jobs:
         with:
           name: pacchetto-pass
           path: MioPass.pkpass
+
 
