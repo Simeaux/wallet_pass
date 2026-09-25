@@ -28,8 +28,33 @@ jobs:
           APPLE_WWDR_CERT: ${{ secrets.APPLE_WWDR_CERT }}
         run: node index.js
 
+      - name: Verifica firma PKCS#7
+        run: |
+          rm -rf pass_check
+          mkdir pass_check
+          unzip -q MioPass.pkpass -d pass_check
+
+          echo "=== CERTIFICATI PRESENTI NELLA FIRMA ==="
+          openssl pkcs7 `
+            -inform DER `
+            -in pass_check/signature `
+            -print_certs `
+            -noout
+
+          echo "=== VERIFICA CRITTOGRAFICA DELLA FIRMA ==="
+          openssl smime `
+            -verify `
+            -inform DER `
+            -in pass_check/signature `
+            -content pass_check/manifest.json `
+            -noverify `
+            -out /dev/null
+
+          echo "=== FIRMA PKCS#7 VERIFICATA ==="
+
       - name: Salva il file .pkpass scaricabile
         uses: actions/upload-artifact@v4
         with:
           name: pacchetto-pass
           path: MioPass.pkpass
+
