@@ -6,36 +6,25 @@ async function createPass() {
   try {
     const base64Cert = process.env.APPLE_PASS_CERT; 
     const passphrase = process.env.APPLE_PASS_PASSWORD;
-    const rawWwdr = process.env.APPLE_WWDR_CERT; // Legge il segreto PEM che hai salvato su GitHub
+    const rawWwdr = process.env.APPLE_WWDR_CERT; // Prende il certificato PEM direttamente da GitHub Secrets
 
+    // Controllo di sicurezza preventivo
     if (!base64Cert || !passphrase || !rawWwdr) {
       throw new Error("Mancano le configurazioni nei segreti di GitHub (CERT, PASSWORD o WWDR).");
     }
 
-    const signerCert = Buffer.from(base64Cert, "base64");
+    // Il file .p12 (base64) contiene sia certificato che chiave privata
+    const p12Buffer = Buffer.from(base64Cert, "base64");
 
-    // Converte il certificato WWDR nel buffer corretto (accetta sia testo PEM che Base64)
-    const wwdrCert = rawWwdr.includes("-----BEGIN CERTIFICATE-----") 
-      ? Buffer.from(rawWwdr, "utf-8") 
-      : Buffer.from(rawWwdr, "base64");
-
-    // Carichiamo le immagini obbligatorie
+    // Carichiamo le immagini obbligatorie dal modello
     const modelPath = path.resolve(__dirname, "./MioPass.raw");
     const iconBuffer = fs.readFileSync(path.join(modelPath, "icon.png"));
     const logoBuffer = fs.readFileSync(path.join(modelPath, "logo.png"));
 
-    // Creazione del pass con iniezione dinamica dei buffer
+    // Inizializzazione ufficiale di passkit-generator: 
+    // 1° parametro: Dati del Pass (JSON)
+    // 2° parametro: Certificati
     const pass = new PKPass({
-      model: {
-        "icon.png": iconBuffer,
-        "logo.png": logoBuffer
-      },
-      certificates: {
-        wwdr: wwdrCert,
-        signerCert: signerCert,
-        signerKeyPassphrase: passphrase
-      }
-    }, {
       formatVersion: 1,
       passTypeIdentifier: "pass.com.task.mio-pass",
       serialNumber: "123456",
@@ -60,13 +49,20 @@ async function createPass() {
           messageEncoding: "iso-8859-1"
         }
       ]
+    }, {
+      wwdr: rawWwdr, // Iniezione diretta del testo PEM del segreto GitHub
+      signerCert: p12Buffer,
+      signerKey: p12Buffer,
+      signerKeyPassphrase: passphrase
     });
 
-    // Forza l'attesa asincrona per la firma e compressione
+    // Iniezione dei file multimediali obbligatori
+    pass.addBuffer("icon.png", iconBuffer);
+    pass.addBuffer("logo.png", logoBuffer);
+
     console.log("-> Compressione e firma del pass in corso...");
     const actualPass = await pass.getAsBuffer();
     
-    // Salvataggio nella cartella root principale
     const outputPath = path.join(process.cwd(), "MioPass.pkpass");
     fs.writeFileSync(outputPath, actualPass);
     
