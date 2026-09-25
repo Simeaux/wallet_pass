@@ -75,8 +75,25 @@ function parseEcCertificateForPkcs7(pem) {
   }
 
   // BIT STRING: il primo byte indica il numero di bit inutilizzati.
-  // certificateToAsn1() di node-forge aggiunge nuovamente questo byte.
-  const signature = signatureValue.value.substring(1);
+  // A seconda della versione/runtime di node-forge il valore può essere
+  // una stringa binaria oppure un array/Uint8Array.
+  let signatureBytes;
+
+  if (typeof signatureValue.value === "string") {
+    signatureBytes = signatureValue.value;
+  } else {
+    signatureBytes = Buffer.from(signatureValue.value).toString("latin1");
+  }
+
+  if (signatureBytes.length < 1) {
+    throw new Error(
+      "Il WWDR contiene una Signature Value vuota."
+    );
+  }
+
+  // Rimuove il byte iniziale "unused bits".
+  // certificateToAsn1() lo aggiungerà nuovamente.
+  const signature = signatureBytes.substring(1);
 
   console.log(
     "-> WWDR EC analizzato senza usare certificateFromPem()."
@@ -414,4 +431,5 @@ async function createPass() {
 }
 
 createPass();
+
 
