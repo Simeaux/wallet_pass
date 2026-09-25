@@ -360,15 +360,11 @@ async function createPass() {
     pass.backgroundColor =
       "rgb(60, 60, 60)";
 
-    pass.generic = {
-      primaryFields: [
-        {
-          key: "member",
-          label: "Membro",
-          value: "Mario Rossi"
-        }
-      ]
-    };
+    pass.primaryFields.push({
+      key: "member",
+      label: "Membro",
+      value: "Mario Rossi"
+    });
 
     // ============================================================
     // QR CODE
@@ -431,5 +427,6 @@ async function createPass() {
 }
 
 createPass();
+
 
 
