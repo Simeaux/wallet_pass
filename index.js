@@ -330,6 +330,15 @@ async function createPass() {
         signerCert: certificatePem,
         signerKey: privateKeyPem,
         signerKeyPassphrase: passphrase
+      },
+      {
+        passTypeIdentifier: "pass.com.task.mio-pass",
+        serialNumber: "123456",
+        teamIdentifier: "P8MH6VJGC7",
+        organizationName: "T.A.S.K. SRL",
+        description: "Tessera Socio",
+        foregroundColor: "rgb(255, 255, 255)",
+        backgroundColor: "rgb(60, 60, 60)"
       }
     );
 
@@ -340,25 +349,6 @@ async function createPass() {
     pass.type = "generic";
     pass.formatVersion = 1;
 
-    pass.passTypeIdentifier =
-      "pass.com.task.mio-pass";
-
-    pass.serialNumber = "123456";
-
-    pass.teamIdentifier =
-      "P8MH6VJGC7";
-
-    pass.organizationName =
-      "T.A.S.K. SRL";
-
-    pass.description =
-      "Tessera Socio";
-
-    pass.foregroundColor =
-      "rgb(255, 255, 255)";
-
-    pass.backgroundColor =
-      "rgb(60, 60, 60)";
 
     pass.primaryFields.push({
       key: "member",
@@ -427,6 +417,8 @@ async function createPass() {
 }
 
 createPass();
+
+
 
 
 
