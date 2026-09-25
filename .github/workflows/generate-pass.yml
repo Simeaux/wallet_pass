@@ -10,28 +10,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout codice
-      uses: actions/checkout@v4
+      - name: Checkout codice
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-    - name: Installa dipendenze
-      run: npm install passkit-generator
+      - name: Installa dipendenze
+        run: npm install passkit-generator node-forge
 
-    - name: Esegui Script di Firma
-      env:
-        APPLE_PASS_CERT: ${{ secrets.APPLE_PASS_CERT }}
-        APPLE_PASS_PASSWORD: ${{ secrets.APPLE_PASS_PASSWORD }}
-        APPLE_WWDR_CERT: ${{ secrets.APPLE_WWDR_CERT }} # <-- RIGA AGGIUNTA
-      run: node index.js
+      - name: Esegui Script di Firma
+        env:
+          APPLE_PASS_CERT: ${{ secrets.APPLE_PASS_CERT }}
+          APPLE_PASS_PASSWORD: ${{ secrets.APPLE_PASS_PASSWORD }}
+          APPLE_WWDR_CERT: ${{ secrets.APPLE_WWDR_CERT }}
+        run: node index.js
 
-
-    - name: Salva il file .pkpass scaricabile
-      uses: actions/upload-artifact@v4
-      with:
-        name: pacchetto-pass
-        path: MioPass.pkpass
-
+      - name: Salva il file .pkpass scaricabile
+        uses: actions/upload-artifact@v4
+        with:
+          name: pacchetto-pass
+          path: MioPass.pkpass
