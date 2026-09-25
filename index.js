@@ -25,6 +25,7 @@ async function createPass() {
     // 1° parametro: Dati del Pass (JSON)
     // 2° parametro: Certificati
     const pass = new PKPass({
+      type: "generic",
       formatVersion: 1,
       passTypeIdentifier: "pass.com.task.mio-pass",
       serialNumber: "123456",
