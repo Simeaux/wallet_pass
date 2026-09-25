@@ -6,7 +6,7 @@ const path = require("path");
 async function createPass() {
   try {
     const base64Cert = process.env.APPLE_PASS_CERT; 
-    const passphrase = process.env.APPLE_PASS_KEY;
+    const passphrase = process.env.APPLE_PASS_PASSWORD;
     let rawWwdr = process.env.APPLE_WWDR_CERT;
 
     if (!base64Cert || !passphrase || !rawWwdr) {
