@@ -4,12 +4,8 @@ const fs = require("fs");
 const path = require("path");
 
 /**
- * Converte il certificato WWDR EC G6 in un oggetto minimale
+ * Converte il certificato WWDR EC in un oggetto minimale
  * compatibile con certificateToAsn1() di node-forge.
- *
- * node-forge 1.4.x rifiuta i certificati X.509 con chiave EC
- * durante certificateFromPem(). Per il WWDR ci serve però
- * soltanto reinserire il certificato originale nel PKCS#7.
  */
 function parseEcCertificateForPkcs7(pem) {
   const messages = forge.pem.decode(pem);
@@ -74,15 +70,14 @@ function parseEcCertificateForPkcs7(pem) {
     );
   }
 
-  // BIT STRING: il primo byte indica il numero di bit inutilizzati.
-  // A seconda della versione/runtime di node-forge il valore può essere
-  // una stringa binaria oppure un array/Uint8Array.
   let signatureBytes;
 
   if (typeof signatureValue.value === "string") {
     signatureBytes = signatureValue.value;
   } else {
-    signatureBytes = Buffer.from(signatureValue.value).toString("latin1");
+    signatureBytes = Buffer.from(
+      signatureValue.value
+    ).toString("latin1");
   }
 
   if (signatureBytes.length < 1) {
@@ -91,13 +86,12 @@ function parseEcCertificateForPkcs7(pem) {
     );
   }
 
-  // Rimuove il byte iniziale "unused bits".
-  // certificateToAsn1() lo aggiungerà nuovamente.
   const signature = signatureBytes.substring(1);
 
   console.log(
     "-> WWDR EC analizzato senza usare certificateFromPem()."
   );
+
   console.log(
     "-> WWDR signature OID: " + signatureOid
   );
@@ -122,16 +116,18 @@ async function createPass() {
       );
     }
 
-    // Normalizza eventuali \n memorizzati letteralmente nel Secret GitHub
-    if (rawWwdr.includes("\\n")) {
-      rawWwdr = rawWwdr.replace(/\\n/g, "\n");
+    if (rawWwdr.includes("\\\n")) {
+      rawWwdr = rawWwdr.replace(/\\\n/g, "\n");
     }
 
     // ============================================================
     // LETTURA E APERTURA DEL .p12
     // ============================================================
 
-    const p12Buffer = Buffer.from(base64Cert, "base64");
+    const p12Buffer = Buffer.from(
+      base64Cert,
+      "base64"
+    );
 
     if (!p12Buffer.length) {
       throw new Error(
@@ -196,47 +192,30 @@ async function createPass() {
       );
     }
 
-    const certificatePem = forge.pki.certificateToPem(
-      certBagList[0].cert
-    );
+    const certificatePem =
+      forge.pki.certificateToPem(
+        certBagList[0].cert
+      );
 
     console.log("-> p12 aperto correttamente.");
     console.log("-> Certificato e chiave privata estratti.");
 
     // ============================================================
-    // WWDR EC G6
+    // WWDR EC
     // ============================================================
 
     const wwdrCertificate =
       parseEcCertificateForPkcs7(rawWwdr);
 
     // ============================================================
-    // PATCH TEMPORANEA DI node-forge
+    // PATCH node-forge
     // ============================================================
-    //
-    // passkit-generator passa il WWDR a:
-    //
-    //   signature.addCertificate(wwdr)
-    //
-    // e successivamente node-forge chiama:
-    //
-    //   certificateToAsn1(cert)
-    //
-    // Il normale certificateFromPem() non supporta EC.
-    //
-    // Sovrascriviamo quindi solo certificateFromPem per
-    // riconoscere il nostro WWDR EC e restituire l'oggetto
-    // ASN.1 minimale.
-    //
-    // Il certificato RSA del Pass continua a essere gestito
-    // normalmente.
 
     const originalCertificateFromPem =
       forge.pki.certificateFromPem;
 
-    // Confrontiamo il DER del certificato invece del testo PEM,
-    // così CRLF/LF e newline del Secret GitHub non sono rilevanti.
-    const wwdrPemMessage = forge.pem.decode(rawWwdr);
+    const wwdrPemMessage =
+      forge.pem.decode(rawWwdr);
 
     if (
       !wwdrPemMessage ||
@@ -250,38 +229,47 @@ async function createPass() {
 
     const wwdrDerHex =
       forge.util
-        .bytesToHex(wwdrPemMessage[0].body)
+        .bytesToHex(
+          wwdrPemMessage[0].body
+        )
         .toLowerCase();
 
-    forge.pki.certificateFromPem = function(pem) {
-      if (typeof pem === "string") {
-        try {
-          const decoded = forge.pem.decode(pem);
+    forge.pki.certificateFromPem =
+      function(pem) {
+        if (typeof pem === "string") {
+          try {
+            const decoded =
+              forge.pem.decode(pem);
 
-          if (
-            decoded &&
-            decoded.length &&
-            decoded[0].type === "CERTIFICATE"
-          ) {
-            const candidateDerHex =
-              forge.util
-                .bytesToHex(decoded[0].body)
-                .toLowerCase();
+            if (
+              decoded &&
+              decoded.length &&
+              decoded[0].type === "CERTIFICATE"
+            ) {
+              const candidateDerHex =
+                forge.util
+                  .bytesToHex(
+                    decoded[0].body
+                  )
+                  .toLowerCase();
 
-            if (candidateDerHex === wwdrDerHex) {
-              return wwdrCertificate;
+              if (
+                candidateDerHex === wwdrDerHex
+              ) {
+                return wwdrCertificate;
+              }
             }
+          } catch (_) {
+            // Il parser originale gestira eventuali certificati non validi.
           }
-        } catch (_) {
-          // Il parser originale gestirà eventuali certificati non validi.
         }
-      }
 
-      return originalCertificateFromPem.call(
-        forge.pki,
-        pem
-      );
-    };
+        return originalCertificateFromPem.call(
+          forge.pki,
+          pem
+        );
+      };
+
     // ============================================================
     // IMMAGINI
     // ============================================================
@@ -313,8 +301,81 @@ async function createPass() {
       );
     }
 
-    const iconBuffer = fs.readFileSync(iconPath);
-    const logoBuffer = fs.readFileSync(logoPath);
+    const iconBuffer =
+      fs.readFileSync(iconPath);
+
+    const logoBuffer =
+      fs.readFileSync(logoPath);
+
+    // ============================================================
+    // CANALI INFORMATIVI
+    // ============================================================
+
+    const channelsPath = path.join(
+      process.cwd(),
+      "channels.json"
+    );
+
+    if (!fs.existsSync(channelsPath)) {
+      throw new Error(
+        "File mancante: channels.json"
+      );
+    }
+
+    let channelConfig;
+
+    try {
+      channelConfig = JSON.parse(
+        fs.readFileSync(
+          channelsPath,
+          "utf8"
+        )
+      );
+    } catch (error) {
+      throw new Error(
+        "channels.json non contiene JSON valido."
+      );
+    }
+
+    if (
+      !channelConfig ||
+      !Array.isArray(channelConfig.channels)
+    ) {
+      throw new Error(
+        "channels.json deve contenere un array 'channels'."
+      );
+    }
+
+    const enabledChannels =
+      channelConfig.channels.filter(
+        channel =>
+          channel &&
+          channel.enabled === true &&
+          channel.id &&
+          channel.name
+      );
+
+    if (!enabledChannels.length) {
+      throw new Error(
+        "Nessun canale informativo attivo."
+      );
+    }
+
+    console.log(
+      "-> Canali informativi attivi: " +
+      enabledChannels.length
+    );
+
+    enabledChannels.forEach(
+      channel => {
+        console.log(
+          "   - " +
+          channel.id +
+          ": " +
+          channel.name
+        );
+      }
+    );
 
     // ============================================================
     // CREAZIONE PASS
@@ -332,13 +393,25 @@ async function createPass() {
         signerKeyPassphrase: passphrase
       },
       {
-        passTypeIdentifier: "pass.com.task.mio-pass",
+        passTypeIdentifier:
+          "pass.com.task.mio-pass",
+
         serialNumber: "123456",
-        teamIdentifier: "P8MH6VJGC7",
-        organizationName: "T.A.S.K. SRL",
-        description: "Tessera Socio",
-        foregroundColor: "rgb(255, 255, 255)",
-        backgroundColor: "rgb(60, 60, 60)"
+
+        teamIdentifier:
+          "P8MH6VJGC7",
+
+        organizationName:
+          "T.A.S.K. SRL",
+
+        description:
+          "Informazioni comunali",
+
+        foregroundColor:
+          "rgb(255, 255, 255)",
+
+        backgroundColor:
+          "rgb(60, 60, 60)"
       }
     );
 
@@ -349,12 +422,66 @@ async function createPass() {
     pass.type = "generic";
     pass.formatVersion = 1;
 
-
     pass.primaryFields.push({
-      key: "member",
-      label: "Membro",
-      value: "Mario Rossi"
+      key: "information",
+      label: "Informazioni comunali",
+      value: "Canali attivi"
     });
+
+    // Primi due canali
+    enabledChannels
+      .slice(0, 2)
+      .forEach(
+        (channel, index) => {
+          pass.secondaryFields.push({
+            key:
+              "channel_" +
+              index,
+
+            label:
+              "Canale",
+
+            value:
+              channel.name
+          });
+        }
+      );
+
+    // Canali successivi
+    enabledChannels
+      .slice(2, 6)
+      .forEach(
+        (channel, index) => {
+          pass.auxiliaryFields.push({
+            key:
+              "channel_aux_" +
+              index,
+
+            label:
+              "Canale",
+
+            value:
+              channel.name
+          });
+        }
+      );
+
+    // Descrizioni sul retro
+    enabledChannels.forEach(
+      channel => {
+        pass.backFields.push({
+          key:
+            "channel_" +
+            channel.id,
+
+          label:
+            channel.name,
+
+          value:
+            channel.description || ""
+        });
+      }
+    );
 
     // ============================================================
     // QR CODE
@@ -362,9 +489,14 @@ async function createPass() {
 
     pass.barcodes = [
       {
-        format: "PKBarcodeFormatQR",
-        message: "https://tuosito.com",
-        messageEncoding: "iso-8859-1"
+        format:
+          "PKBarcodeFormatQR",
+
+        message:
+          "https://tuosito.com",
+
+        messageEncoding:
+          "iso-8859-1"
       }
     ];
 
@@ -417,8 +549,3 @@ async function createPass() {
 }
 
 createPass();
-
-
-
-
-

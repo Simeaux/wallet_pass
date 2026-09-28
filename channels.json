@@ -1,0 +1,46 @@
+﻿{
+  "channels": [
+    {
+      "id": "traffico",
+      "name": "Viabilità e traffico",
+      "description": "Modifiche alla circolazione, viabilità e parcheggi",
+      "enabled": true
+    },
+    {
+      "id": "differenziata",
+      "name": "Raccolta differenziata",
+      "description": "Calendari, modifiche e comunicazioni sulla raccolta",
+      "enabled": true
+    },
+    {
+      "id": "scuole",
+      "name": "Scuole",
+      "description": "Comunicazioni relative a scuole e servizi scolastici",
+      "enabled": true
+    },
+    {
+      "id": "turismo",
+      "name": "Turismo",
+      "description": "Informazioni e comunicazioni turistiche",
+      "enabled": true
+    },
+    {
+      "id": "eventi",
+      "name": "Eventi",
+      "description": "Eventi, manifestazioni e iniziative comunali",
+      "enabled": true
+    },
+    {
+      "id": "protezione-civile",
+      "name": "Protezione civile",
+      "description": "Allerte e comunicazioni di protezione civile",
+      "enabled": true
+    },
+    {
+      "id": "servizi-comunali",
+      "name": "Servizi comunali",
+      "description": "Comunicazioni sui servizi del Comune",
+      "enabled": true
+    }
+  ]
+}
