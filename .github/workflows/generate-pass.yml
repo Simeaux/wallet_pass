@@ -26,6 +26,9 @@ jobs:
           APPLE_PASS_CERT: ${{ secrets.APPLE_PASS_CERT }}
           APPLE_PASS_PASSWORD: ${{ secrets.APPLE_PASS_PASSWORD }}
           APPLE_WWDR_CERT: ${{ secrets.APPLE_WWDR_CERT }}
+          WORDPRESS_API_URL: ${{ secrets.WORDPRESS_API_URL }}
+          WALLET_GENERATOR_KEY: ${{ secrets.WALLET_GENERATOR_KEY }}
+          WALLET_PASS_ID: ${{ secrets.WALLET_PASS_ID }}
         run: node index.js
 
       - name: Verifica firma PKCS#7

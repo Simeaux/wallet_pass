@@ -2,6 +2,18 @@
 const forge = require("node-forge");
 const fs = require("fs");
 const path = require("path");
+const https = require("https");
+const http = require("http");
+
+const WORDPRESS_API_URL =
+  process.env.WORDPRESS_API_URL ||
+  "http://turismo.comune.caldarola.mc.it";
+
+const WALLET_GENERATOR_KEY =
+  process.env.WALLET_GENERATOR_KEY;
+
+const WALLET_PASS_ID =
+  process.env.WALLET_PASS_ID || "1";
 
 /**
  * Converte il certificato WWDR EC in un oggetto minimale
@@ -102,6 +114,100 @@ function parseEcCertificateForPkcs7(pem) {
     signatureParameters,
     signature
   };
+}
+
+function fetchWalletPass() {
+  return new Promise((resolve, reject) => {
+    if (!WALLET_GENERATOR_KEY) {
+      reject(
+        new Error(
+          "Manca la variabile WALLET_GENERATOR_KEY."
+        )
+      );
+      return;
+    }
+
+    const url =
+      WORDPRESS_API_URL.replace(/\/+$/, "") +
+      "/wp-json/wallet/v1/generator/pass/" +
+      encodeURIComponent(WALLET_PASS_ID);
+
+    const client =
+      url.startsWith("https://")
+        ? https
+        : http;
+
+    const request =
+      client.get(
+        url,
+        {
+          headers: {
+            "X-Wallet-Generator-Key":
+              WALLET_GENERATOR_KEY,
+            "Accept":
+              "application/json"
+          }
+        },
+        response => {
+          let body = "";
+
+          response.setEncoding("utf8");
+
+          response.on(
+            "data",
+            chunk => {
+              body += chunk;
+            }
+          );
+
+          response.on(
+            "end",
+            () => {
+              if (
+                response.statusCode < 200 ||
+                response.statusCode >= 300
+              ) {
+                reject(
+                  new Error(
+                    "WordPress API HTTP " +
+                    response.statusCode +
+                    ": " +
+                    body
+                  )
+                );
+                return;
+              }
+
+              try {
+                const data =
+                  JSON.parse(body);
+
+                resolve(data);
+              } catch (error) {
+                reject(
+                  new Error(
+                    "Risposta WordPress non valida: " +
+                    error.message
+                  )
+                );
+              }
+            }
+          );
+        }
+      );
+
+    request.on(
+      "error",
+      error => {
+        reject(
+          new Error(
+            "Errore connessione WordPress: " +
+            error.message
+          )
+        );
+      }
+    );
+  });
 }
 
 async function createPass() {
@@ -307,47 +413,47 @@ async function createPass() {
     const logoBuffer =
       fs.readFileSync(logoPath);
 
-    // ============================================================
-    // CANALI INFORMATIVI
+        // ============================================================
+    // DATI WALLET DA WORDPRESS
     // ============================================================
 
-    const channelsPath = path.join(
-      process.cwd(),
-      "channels.json"
+    console.log(
+      "-> Recupero dati del pass da WordPress..."
     );
 
-    if (!fs.existsSync(channelsPath)) {
-      throw new Error(
-        "File mancante: channels.json"
-      );
-    }
-
-    let channelConfig;
-
-    try {
-      channelConfig = JSON.parse(
-        fs.readFileSync(
-          channelsPath,
-          "utf8"
-        )
-      );
-    } catch (error) {
-      throw new Error(
-        "channels.json non contiene JSON valido."
-      );
-    }
+    const walletData =
+      await fetchWalletPass();
 
     if (
-      !channelConfig ||
-      !Array.isArray(channelConfig.channels)
+      !walletData ||
+      !walletData.id ||
+      !walletData.pass_uuid ||
+      !walletData.auth_token ||
+      !walletData.serial_number ||
+      !Array.isArray(walletData.channels)
     ) {
       throw new Error(
-        "channels.json deve contenere un array 'channels'."
+        "Risposta WordPress incompleta o non valida."
       );
     }
 
+    console.log(
+      "-> Pass WordPress: " +
+      walletData.id
+    );
+
+    console.log(
+      "-> UUID: " +
+      walletData.pass_uuid
+    );
+
+    console.log(
+      "-> Serial: " +
+      walletData.serial_number
+    );
+
     const enabledChannels =
-      channelConfig.channels.filter(
+      walletData.channels.filter(
         channel =>
           channel &&
           channel.enabled === true &&
@@ -357,7 +463,7 @@ async function createPass() {
 
     if (!enabledChannels.length) {
       throw new Error(
-        "Nessun canale informativo attivo."
+        "Nessun canale informativo attivo in WordPress."
       );
     }
 
@@ -372,7 +478,14 @@ async function createPass() {
           "   - " +
           channel.id +
           ": " +
-          channel.name
+          channel.name +
+          " [" +
+          (
+            channel.preference_enabled === true
+              ? "ATTIVO"
+              : "DISATTIVO"
+          ) +
+          "]"
         );
       }
     );
@@ -396,7 +509,7 @@ async function createPass() {
         passTypeIdentifier:
           "pass.com.task.mio-pass",
 
-        serialNumber: "123456",
+        serialNumber: walletData.serial_number,
 
         teamIdentifier:
           "P8MH6VJGC7",
@@ -478,7 +591,12 @@ async function createPass() {
             channel.name,
 
           value:
-            channel.description || ""
+            channel.description || "",
+
+          attributedValue:
+            channel.url
+              ? `<a href="${channel.url}">${channel.name}</a>`
+              : undefined
         });
       }
     );
