@@ -645,7 +645,7 @@ async function createPass() {
       channel => {
         pass.backFields.push({
           key:
-            "channel_" +
+            "channel_description_" +
             channel.id,
 
           label:
