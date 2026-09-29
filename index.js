@@ -229,7 +229,7 @@ function fetchWalletPass() {
                 try {
 
                   const data =
-                    JSON.parse(body);
+  JSON.parse(body.replace(/^\uFEFF/, ""));
 
                   resolve(data);
 
