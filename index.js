@@ -118,13 +118,148 @@ function parseEcCertificateForPkcs7(pem) {
 
 function fetchWalletPass() {
   return new Promise((resolve, reject) => {
-    if (!WALLET_GENERATOR_KEY) {
-      reject(
-        new Error(
-          "Manca la variabile WALLET_GENERATOR_KEY."
-        )
+
+    function requestUrl(url, redirectCount = 0) {
+
+      if (!WALLET_GENERATOR_KEY) {
+        reject(
+          new Error(
+            "Manca la variabile WALLET_GENERATOR_KEY."
+          )
+        );
+        return;
+      }
+
+      if (redirectCount > 5) {
+        reject(
+          new Error(
+            "Troppi redirect durante la chiamata a WordPress."
+          )
+        );
+        return;
+      }
+
+      const client =
+        url.startsWith("https://")
+          ? https
+          : http;
+
+      const request =
+        client.get(
+          url,
+          {
+            headers: {
+              "X-Wallet-Generator-Key":
+                WALLET_GENERATOR_KEY,
+
+              "Accept":
+                "application/json"
+            }
+          },
+          response => {
+
+            // ====================================================
+            // REDIRECT HTTP
+            // ====================================================
+
+            if (
+              response.statusCode >= 300 &&
+              response.statusCode < 400 &&
+              response.headers.location
+            ) {
+
+              const redirectUrl =
+                new URL(
+                  response.headers.location,
+                  url
+                ).toString();
+
+              console.log(
+                "-> WordPress redirect HTTP " +
+                response.statusCode +
+                ": " +
+                redirectUrl
+              );
+
+              response.resume();
+
+              requestUrl(
+                redirectUrl,
+                redirectCount + 1
+              );
+
+              return;
+            }
+
+            // ====================================================
+            // RISPOSTA NORMALE
+            // ====================================================
+
+            let body = "";
+
+            response.setEncoding("utf8");
+
+            response.on(
+              "data",
+              chunk => {
+                body += chunk;
+              }
+            );
+
+            response.on(
+              "end",
+              () => {
+
+                if (
+                  response.statusCode < 200 ||
+                  response.statusCode >= 300
+                ) {
+                  reject(
+                    new Error(
+                      "WordPress API HTTP " +
+                      response.statusCode +
+                      ": " +
+                      body
+                    )
+                  );
+
+                  return;
+                }
+
+                try {
+
+                  const data =
+                    JSON.parse(body);
+
+                  resolve(data);
+
+                } catch (error) {
+
+                  reject(
+                    new Error(
+                      "Risposta WordPress non valida: " +
+                      error.message
+                    )
+                  );
+
+                }
+
+              }
+            );
+          }
+        );
+
+      request.on(
+        "error",
+        error => {
+          reject(
+            new Error(
+              "Errore connessione WordPress: " +
+              error.message
+            )
+          );
+        }
       );
-      return;
     }
 
     const url =
@@ -132,81 +267,7 @@ function fetchWalletPass() {
       "/wp-json/wallet/v1/generator/pass/" +
       encodeURIComponent(WALLET_PASS_ID);
 
-    const client =
-      url.startsWith("https://")
-        ? https
-        : http;
-
-    const request =
-      client.get(
-        url,
-        {
-          headers: {
-            "X-Wallet-Generator-Key":
-              WALLET_GENERATOR_KEY,
-            "Accept":
-              "application/json"
-          }
-        },
-        response => {
-          let body = "";
-
-          response.setEncoding("utf8");
-
-          response.on(
-            "data",
-            chunk => {
-              body += chunk;
-            }
-          );
-
-          response.on(
-            "end",
-            () => {
-              if (
-                response.statusCode < 200 ||
-                response.statusCode >= 300
-              ) {
-                reject(
-                  new Error(
-                    "WordPress API HTTP " +
-                    response.statusCode +
-                    ": " +
-                    body
-                  )
-                );
-                return;
-              }
-
-              try {
-                const data =
-                  JSON.parse(body);
-
-                resolve(data);
-              } catch (error) {
-                reject(
-                  new Error(
-                    "Risposta WordPress non valida: " +
-                    error.message
-                  )
-                );
-              }
-            }
-          );
-        }
-      );
-
-    request.on(
-      "error",
-      error => {
-        reject(
-          new Error(
-            "Errore connessione WordPress: " +
-            error.message
-          )
-        );
-      }
-    );
+    requestUrl(url);
   });
 }
 
