@@ -640,9 +640,33 @@ async function createPass() {
         }
       );
 
-    // Descrizioni sul retro
+    // Descrizioni e gestione preferenza sul retro
     enabledChannels.forEach(
       channel => {
+
+        const nextState =
+          channel.preference_enabled === true
+            ? "off"
+            : "on";
+
+        const actionLabel =
+          channel.preference_enabled === true
+            ? "DISATTIVA"
+            : "ATTIVA";
+
+        const actionUrl =
+          WORDPRESS_API_URL.replace(/\/+$/, "") +
+          "/wp-json/wallet/v1/action" +
+          "?token=" +
+          encodeURIComponent(walletData.auth_token) +
+          "&channel=" +
+          encodeURIComponent(channel.id) +
+          "&state=" +
+          encodeURIComponent(nextState);
+
+        const description =
+          channel.description || "";
+
         pass.backFields.push({
           key:
             "channel_description_" +
@@ -652,12 +676,12 @@ async function createPass() {
             channel.name,
 
           value:
-            channel.description || "",
+            description,
 
           attributedValue:
-            channel.url
-              ? `<a href="${channel.url}">${channel.name}</a>`
-              : undefined
+            description +
+            "<br><br>" +
+            `<a href="${actionUrl}">${actionLabel}</a>`
         });
       }
     );
